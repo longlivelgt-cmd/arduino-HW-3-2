@@ -1,0 +1,83 @@
+#include <Arduino.h>
+
+const int LED_PIN = 3; 
+const int BUTTON_PIN = 2;
+const unsigned long DEBOUNCE_TIME = 30;
+
+bool lastButtonReading = HIGH;
+bool stableButtonState = HIGH;
+unsigned long lastDebounceTime = 0;
+
+int currentMode = 0; // 0: Steady, 1: Slow, 2: Medium, 3: Fast[cite: 1]
+
+void setup() {
+  pinMode(LED_PIN, OUTPUT);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  digitalWrite(LED_PIN, HIGH);
+}
+
+void loop() {
+  handleButton();
+  updateLightMode();
+}
+
+void handleButton() {
+  bool reading = digitalRead(BUTTON_PIN);
+  unsigned long now = millis();
+
+  if (reading != lastButtonReading) {
+    lastDebounceTime = now;
+  }
+
+  if (now - lastDebounceTime >= DEBOUNCE_TIME) {
+    if (reading != stableButtonState) {
+      stableButtonState = reading;
+
+      // Change mode on button release
+      if (stableButtonState == HIGH) {
+        currentMode++;
+        if (currentMode >= 4) {
+          currentMode = 0; // Loop back on 4th press[cite: 1]
+        }
+      }
+    }
+  }
+
+  lastButtonReading = reading;
+}
+
+void updateLightMode() {
+  static unsigned long lastBlink = 0;
+  static bool ledState = false;
+  unsigned long now = millis();
+
+  switch (currentMode) {
+    case 0: // Steady
+      digitalWrite(LED_PIN, HIGH);
+      break;
+
+    case 1:
+      if (now - lastBlink >= 500) {
+        lastBlink = now;
+        ledState = !ledState;
+        digitalWrite(LED_PIN, ledState ? HIGH : LOW);
+      }
+      break;
+
+    case 2:
+      if (now - lastBlink >= 200) {
+        lastBlink = now;
+        ledState = !ledState;
+        digitalWrite(LED_PIN, ledState ? HIGH : LOW);
+      }
+      break;
+
+    case 3:
+      if (now - lastBlink >= 80) {
+        lastBlink = now;
+        ledState = !ledState;
+        digitalWrite(LED_PIN, ledState ? HIGH : LOW);
+      }
+      break;
+  }
+}
